@@ -30,6 +30,6 @@ class Product extends Model
     // The category() method defines a relationship between the Product model and the ProductCategory model. It indicates that each product belongs to a single product category. This relationship is established using the belongsTo method, which takes the related model class as an argument.
     public function category(): BelongsTo
     {
-        return $this->belongsTo(ProductCategory::class);
+        return $this->belongsTo(ProductCategory::class, 'product_category_id');
     }
 }
