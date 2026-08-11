@@ -65,7 +65,7 @@ class OrderController extends Controller
             $order->update(['total' => $total]);
 
         });
-        
+
         return $order;
     }
 
@@ -77,6 +77,35 @@ class OrderController extends Controller
         return response()->json($order->load(['customer', 'user', 'items.product']));
     }
 
+    /**
+     * Modify order status.
+     */
+    public function updateStatus(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:pending,preparando,enviado,entregado'],
+        ]);
+
+        $allowedTransitions = [
+            'pending' => ['preparing'],
+            'preparing' => ['shipped'],
+            'shipped' => ['delivered'],
+            'delivered' => [],
+        ];
+
+        $currentStatus = $order->status;
+        $newStatus = $validated['status'];
+
+        if (!in_array($newStatus, $allowedTransitions[$currentStatus])) {
+            return response()->json([
+                'message' => "No se puede cambiar de '{$currentStatus}' a '{$newStatus}'",
+            ], 422);
+        }
+
+        $order->update(['status' => $newStatus]);
+
+        return response()->json($order->load(['customer', 'items.product']));
+    }
     /**
      * Update the specified resource in storage.
      */

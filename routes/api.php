@@ -32,7 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Order routes proteted
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']); 
-    Route::get('/orders/{order}', [OrderController::class, 'show']); 
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 });
 
 // Product routes
