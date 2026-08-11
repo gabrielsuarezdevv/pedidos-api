@@ -18,22 +18,28 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/orders', [OrderController::class, 'index']); // List all orders
-    Route::post('/orders', [OrderController::class, 'store']); // Create a new order
+
+    // Product routes protecteds
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::put('/products/{product}', [ProductController::class, 'update']);
+    Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+
+    // Customers routes protected
+    Route::post('/customers', [CustomerController::class, 'store']);
+    Route::put('/customers/{customer}', [CustomerController::class, 'update']);
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
+
+    // Order routes proteted
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']); 
+    Route::get('/orders/{order}', [OrderController::class, 'show']); 
 });
 
 // Product routes
 Route::get('/products', [ProductController::class, 'index']);
-Route::post('/products', [ProductController::class, 'store']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
-Route::put('/products/{product}', [ProductController::class, 'update']);
-Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 
 // Customer routes
 Route::get('/customers', [CustomerController::class, 'index']);
-Route::post('/customers', [CustomerController::class, 'store']);
 Route::get('/customers/{customer}', [CustomerController::class, 'show']);
-Route::put('/customers/{customer}', [CustomerController::class, 'update']);
-Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
 
-// Order routes
