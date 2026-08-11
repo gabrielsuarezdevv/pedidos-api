@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\CustomerController;
 
 // Define API routes, including authentication routes for registration, login, and logout. The '/user' route returns the authenticated user's information and is protected by the 'auth:sanctum' middleware.
 Route::get('/user', function (Request $request) {
@@ -24,3 +25,10 @@ Route::post('/products', [ProductController::class, 'store']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::put('/products/{product}', [ProductController::class, 'update']);
 Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+
+// Customer routes
+Route::get('/customers', [CustomerController::class, 'index']);
+Route::post('/customers', [CustomerController::class, 'store']);
+Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+Route::put('/customers/{customer}', [CustomerController::class, 'update']);
+Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
