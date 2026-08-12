@@ -84,7 +84,7 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:pending,preparing,shipped,delivered'],
+            'status' => ['required', 'in:pending,preparing,shipped,delivered,cancelled'],
         ]);
 
         $allowedTransitions = [
@@ -104,6 +104,25 @@ class OrderController extends Controller
         }
 
         $order->update(['status' => $newStatus]);
+
+        return response()->json($order->load(['customer', 'items.product']));
+    }
+
+    public function cancel(Order $order)
+    {
+        if (!in_array($order->status, ['pending', 'preparing'])) {
+            return response()->json([
+                'message' => "No se puede cancelar un pedido en estado '{$order->status}'",
+            ], 422);
+        }
+
+        DB::transaction(function () use ($order) {
+            foreach ($order->items as $item) {
+                $item->product->increment('stock', $item->quantity);
+            }
+
+            $order->update(['status' => 'cancelled']);
+        });
 
         return response()->json($order->load(['customer', 'items.product']));
     }

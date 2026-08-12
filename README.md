@@ -1,58 +1,147 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<div align="center">
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# 📦 Pedidos API
 
-## About Laravel
+### Sistema de gestión de pedidos e inventario B2B — Backend REST
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+[![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?style=flat&logo=laravel&logoColor=white)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=flat&logo=php&logoColor=white)](https://php.net)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white)](https://www.mysql.com)
+[![Sanctum](https://img.shields.io/badge/Auth-Sanctum-3178C6?style=flat)](https://laravel.com/docs/sanctum)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat)](LICENSE)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+*[English version below](README.en.md)*
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+</div>
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+API REST construida con Laravel para gestionar el ciclo de vida completo de pedidos B2B: catálogo de productos, clientes empresa, control de stock en tiempo real y una máquina de estados de pedido con transiciones controladas. Diseñada como backend puro (sin vistas), pensada para ser consumida por un frontend en React.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 📑 Índice
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- [Stack](#-stack)
+- [Funcionalidades](#-funcionalidades)
+- [Decisiones técnicas](#-decisiones-técnicas)
+- [Instalación](#-instalación)
+- [Endpoints](#-endpoints)
+- [Roadmap](#-roadmap)
 
-## Agentic Development
+## 🛠 Stack
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+| Categoría | Tecnología |
+|---|---|
+| Framework | Laravel 13 |
+| Base de datos | MySQL |
+| Autenticación | Laravel Sanctum (tokens) |
+| Roles y permisos | Spatie Laravel Permission |
+| Testing *(planeado)* | Pest |
+
+## ✨ Funcionalidades
+
+- 🔐 **Autenticación por tokens** — registro, login y logout con Sanctum
+- 👥 **Roles diferenciados** — admin, comercial, almacén y cliente, con permisos de escritura separados de la lectura pública
+- 📦 **Catálogo de productos** con categorías y control de stock
+- 🧾 **Creación de pedidos transaccional** — valida stock, descuenta inventario y calcula el total en una única transacción atómica
+- 🔄 **Máquina de estados** — `pending → preparing → shipped → delivered`, con validación explícita de transiciones (no se puede saltar pasos ni retroceder)
+- ↩️ **Cancelación con devolución de stock** — sin borrar el pedido, se conserva como registro histórico (`cancelled`)
+- ⚡ **Eager loading sistemático** — sin problemas N+1 en ningún listado con relaciones
+
+## 🧠 Decisiones técnicas
+
+Algunas decisiones de diseño que vale la pena explicar, más allá del código:
+
+- **El precio se congela en cada línea de pedido** (`unit_price` en `order_items`), en vez de leerse en vivo desde `products.price`. Así, si el precio de un producto cambia, los pedidos históricos no se ven afectados retroactivamente.
+- **Los pedidos nunca se borran físicamente.** Cancelar cambia el `status` a `cancelled` y devuelve el stock — el historial se conserva siempre, algo imprescindible en cualquier sistema con implicaciones contables.
+- **Cambiar el estado de un pedido vive en un endpoint separado** (`PATCH /orders/{id}/status`) en lugar de un `update` genérico, para poder aplicar permisos por rol a esa acción concreta y mantener la lógica de transición en un único lugar.
+- **Toda operación que combina varias escrituras** (crear pedido, cancelar pedido) está envuelta en `DB::transaction()` — si algo falla a mitad, no queda ningún dato a medias.
+
+## 🚀 Instalación
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/gabrielsuarezdevv/pedidos-api.git
+cd pedidos-api
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Configura tu base de datos en `.env`, luego:
 
-## Contributing
+```bash
+php artisan migrate --seed
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 📋 Endpoints
 
-## Code of Conduct
+### Autenticación
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|:---:|
+| POST | `/api/register` | Registro de usuario | ❌ |
+| POST | `/api/login` | Login, devuelve token | ❌ |
+| POST | `/api/logout` | Revoca el token actual | ✅ |
 
-## Security Vulnerabilities
+### Productos
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|:---:|
+| GET | `/api/products` | Listado (catálogo público) | ❌ |
+| GET | `/api/products/{id}` | Detalle | ❌ |
+| POST | `/api/products` | Crear | ✅ |
+| PUT | `/api/products/{id}` | Actualizar | ✅ |
+| DELETE | `/api/products/{id}` | Eliminar | ✅ |
 
-## License
+### Clientes
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|:---:|
+| GET | `/api/customers` | Listado | ❌ |
+| GET | `/api/customers/{id}` | Detalle | ❌ |
+| POST | `/api/customers` | Crear | ✅ |
+| PUT | `/api/customers/{id}` | Actualizar | ✅ |
+| DELETE | `/api/customers/{id}` | Eliminar | ✅ |
+
+### Pedidos
+
+| Método | Endpoint | Descripción | Auth |
+|---|---|---|:---:|
+| GET | `/api/orders` | Listado | ✅ |
+| GET | `/api/orders/{id}` | Detalle | ✅ |
+| POST | `/api/orders` | Crear (valida stock, calcula total) | ✅ |
+| PATCH | `/api/orders/{id}/status` | Cambiar estado | ✅ |
+| DELETE | `/api/orders/{id}/cancel` | Cancelar (devuelve stock) | ✅ |
+
+<details>
+<summary><strong>📦 Ejemplo: crear un pedido</strong></summary>
+
+```json
+POST /api/orders
+Authorization: Bearer {token}
+
+{
+    "customer_id": 1,
+    "items": [
+        { "product_id": 1, "quantity": 5 },
+        { "product_id": 2, "quantity": 2 }
+    ]
+}
+```
+
+</details>
+
+## 🗺 Roadmap
+
+- [ ] Tests automatizados con Pest
+- [ ] Dashboard con métricas (ventas por periodo, productos más vendidos)
+- [ ] Notificaciones en tiempo real de stock bajo (Laravel Reverb)
+- [ ] Frontend en React
+
+---
+
+<div align="center">
+
+Desarrollado por **Gabriel Suárez** — [GitHub](https://github.com/gabrielsuarezdevv)
+
+</div>
