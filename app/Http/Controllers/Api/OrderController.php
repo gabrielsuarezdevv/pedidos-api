@@ -64,9 +64,10 @@ class OrderController extends Controller
 
             $order->update(['total' => $total]);
 
+            return $order;
         });
 
-        return $order;
+        return response()->json($order->load(['customer', 'items.product']), 201);
     }
 
     /**
