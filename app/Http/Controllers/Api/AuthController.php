@@ -7,19 +7,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // Validate the request data
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],  // Ensure the email is unique in the users table
-            'password' => ['required', 'confirmed', Password::defaults()], // Use Laravel's default password rules
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        // Create the user
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -28,43 +27,42 @@ class AuthController extends Controller
 
         $user->assignRole('cliente');
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        Auth::login($user);
 
         return response()->json([
             'user' => $user,
-            'token' => $token,
         ], 201);
     }
 
     public function login(Request $request)
     {
-        // Validate the request data
         $validated = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        // Attempt to find the user by email
-        $user = User::where('email', $validated['email'])->first();
-
-        // Check if the user exists and the password is correct
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (!Auth::attempt($validated)) {
             return response()->json([
                 'message' => 'Credenciales incorrectas',
             ], 401);
         }
-    
-        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Regenerate the session to prevent session fixation attacks
+        $request->session()->regenerate();
 
         return response()->json([
-            'user' => $user,
-            'token' => $token,
+            'user' => Auth::user(),
         ]);
     }
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
+
+        $request->session()->invalidate();
+
+        // Regenerate the CSRF token to prevent CSRF attacks
+        $request->session()->regenerateToken();
 
         return response()->json([
             'message' => 'Sesión cerrada correctamente',
