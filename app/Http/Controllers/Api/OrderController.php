@@ -81,8 +81,16 @@ class OrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Order $order)
+    public function show(Request $request, Order $order)
     {
+        $user = $request->user();
+
+        if ($user->hasRole('cliente') && $order->customer_id !== $user->customer_id) {
+            return response()->json([
+                'message' => 'No tienes permiso para ver este pedido',
+            ], 403);
+        }
+
         return response()->json($order->load(['customer', 'user', 'items.product']));
     }
 
