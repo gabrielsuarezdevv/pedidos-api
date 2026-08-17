@@ -14,9 +14,17 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with(['customer', 'user', 'items.product'])->get();
+        $user = $request->user();
+
+        $query = Order::with(['customer', 'user', 'items.product']);
+
+        if ($user->hasRole('cliente')) {
+            $query->where('customer_id', $user->customer_id);
+        }
+
+        $orders = $query->get();
 
         return response()->json($orders);
     }
