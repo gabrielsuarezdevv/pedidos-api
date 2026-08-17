@@ -34,6 +34,8 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+        $user = $request->user();
+
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
             'notes' => ['nullable', 'string'],
@@ -42,10 +44,14 @@ class OrderController extends Controller
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $order = DB::transaction(function () use ($validated, $request) {
+        if ($user->hasRole('cliente')) {
+            $validated['customer_id'] = $user->customer_id;
+        }
+
+        $order = DB::transaction(function () use ($validated, $user) {
             $order = Order::create([
                 'customer_id' => $validated['customer_id'],
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
