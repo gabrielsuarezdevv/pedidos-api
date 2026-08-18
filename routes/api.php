@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\OrderController;
 
 // Define API routes, including authentication routes for registration, login, and logout. The '/user' route returns the authenticated user's information and is protected by the 'auth:sanctum' middleware.
 Route::get('/user', function (Request $request) {
-    return $request->user();
+    return $request->user()->load('roles', 'customer');
 })->middleware('auth:sanctum');
 
 // Authentication routes
